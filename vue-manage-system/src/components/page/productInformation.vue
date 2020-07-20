@@ -15,7 +15,7 @@
                     class="handle-del mr10"
                     @click="delAllSelection"
                 >批量删除</el-button>
-                <el-input v-model="query.name" placeholder="用户名" class="handle-input mr10"></el-input>
+                <el-input v-model="query.name" placeholder="请输入商品类别" class="handle-input mr10"></el-input>
                 <el-button type="primary" icon="el-icon-search" @click="handleSearch">搜索</el-button>
             </div>
             <el-table
@@ -27,22 +27,32 @@
                 @selection-change="handleSelectionChange"
             >
                 <el-table-column type="selection" width="55" align="center"></el-table-column>
-                <el-table-column prop="id" label="ID" width="55" align="center"></el-table-column>
-                <el-table-column prop="name" label="商品名称"></el-table-column>
-                <el-table-column prop="address" label="商品类别"></el-table-column>
-                <el-table-column prop="address" label="商品库存"></el-table-column>
-                <el-table-column label="商品图片" align="center">
+                <el-table-column prop="id" label="商品编号" align="center">
+                    <template slot-scope="scope">{{scope.row.productNumber}}</template>
+                </el-table-column>
+                <el-table-column prop="name" label="商品名称" align="center">
+                    <template slot-scope="scope">{{scope.row.productName}}</template>
+                </el-table-column>
+                <el-table-column prop="address" label="商品类别" align="center">
+                    <template slot-scope="scope">{{scope.row.category}}</template>
+                </el-table-column>
+                <el-table-column prop="address" label="商品库存" align="center">
+                    <template slot-scope="scope">{{scope.row.stocks}}</template>
+                </el-table-column>
+                <el-table-column label="商品图片" align="center" >
                     <template slot-scope="scope">
                         <el-image
                             class="table-td-thumb"
-                            :src="scope.row.thumb"
-                            :preview-src-list="[scope.row.thumb]"
+                            :src="scope.row.productPicture"
+                            :preview-src-list="[scope.row.productPicture]"
                         ></el-image>
                     </template>
                 </el-table-column>
-                <el-table-column prop="name" label="商品简介"></el-table-column>
-                <el-table-column label="商品单价">
-                    <template slot-scope="scope">￥{{scope.row.money}}</template>
+                <el-table-column prop="name" label="商品简介" align="center">
+                    <template slot-scope="scope">{{scope.row.description}}</template>
+                </el-table-column>
+                <el-table-column label="商品单价" align="center">
+                    <template slot-scope="scope">{{scope.row.price}}</template>
                 </el-table-column>
                 <el-table-column label="操作" width="180" align="center">
                     <template slot-scope="scope">
@@ -123,22 +133,31 @@ export default {
             id: -1
         };
     },
-    created() {
-        this.getData();
+    mounted() {
+        // this.getData();
+        var that = this
+        console.log('1111')
+        this.axios.post('http://localhost:3001/goodsInfoMana',{
+            data: {status:4}
+        }).then(
+            function(res){
+                console.log(res.data)
+                console.log(that)
+                that.tableData = res.data
+                that.pageTotal = res.data.length || 50;
+                // console.log(that.tableData)
+                // console.log(that.pageTotal)
+            },
+            function(err){
+                console.log(err)
+            }
+            )
     },
     methods: {
-        // 获取 easy-mock 的模拟数据
-        getData() {
-            fetchData(this.query).then(res => {
-                console.log(res);
-                this.tableData = res.list;
-                this.pageTotal = res.pageTotal || 50;
-            });
-        },
+
         // 触发搜索按钮
         handleSearch() {
             this.$set(this.query, 'pageIndex', 1);
-            this.getData();
         },
         // 删除操作
         handleDelete(index, row) {
