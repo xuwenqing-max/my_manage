@@ -76,11 +76,11 @@ export default {
                     index: 'user',
                     title: '用户信息表'
                 },
-                {
-                    icon: 'el-icon-lx-cascades',
-                    index: 'address',
-                    title: '收货地址表'
-                },
+                // {
+                //     icon: 'el-icon-lx-cascades',
+                //     index: 'address',
+                //     title: '收货地址表'
+                // },
                 {
                     icon: 'el-icon-lx-warn',
                     index: '7',

@@ -15,11 +15,11 @@
                     class="handle-del mr10"
                     @click="delAllSelection"
                 >批量删除</el-button>
-                <el-input v-model="query.name" placeholder="用户名" class="handle-input mr10"></el-input>
+                <el-input v-model="query.name" placeholder="用户账号/违规次数" class="handle-input mr10"></el-input>
                 <el-button type="primary" icon="el-icon-search" @click="handleSearch">搜索</el-button>
             </div>
             <el-table
-                :data="tableData"
+                :data="tableData.slice((query.pageIndex-1)*query.pageSize,query.pageIndex*query.pageSize)"
                 border
                 class="table"
                 ref="multipleTable"
@@ -28,20 +28,21 @@
             >
                 <el-table-column type="selection" width="55" align="center"></el-table-column>
                 <el-table-column prop="id" label="ID" width="55" align="center"></el-table-column>
-                <el-table-column prop="name" label="用户账号"></el-table-column>
+                <el-table-column prop="userId" label="用户账号" width="110"></el-table-column>
                 <el-table-column label="头像" align="center">
                     <template slot-scope="scope">
                         <el-image
                             class="table-td-thumb"
-                            :src="scope.row.thumb"
-                            :preview-src-list="[scope.row.thumb]"
+                            :src="scope.row.avatar"
+                            :preview-src-list="[scope.row.avatar]"
                         ></el-image>
                     </template>
                 </el-table-column>
-                <el-table-column prop="name" label="手机号"></el-table-column>
-                <el-table-column prop="address" label="昵称"></el-table-column>
-                <el-table-column prop="address" label="密码"></el-table-column>
-                <el-table-column prop="name" label="邮箱"></el-table-column>
+                <el-table-column prop="telnumber" label="手机号"></el-table-column>
+                <el-table-column prop="nickname" label="昵称"></el-table-column>
+                <el-table-column prop="password" label="密码"></el-table-column>
+                <el-table-column prop="mailbox" label="邮箱"></el-table-column>
+                <el-table-column prop="weigui" label="违规次数"></el-table-column>
                 <el-table-column label="操作" width="180" align="center">
                     <template slot-scope="scope">
                         <el-button
@@ -55,6 +56,16 @@
                             class="red"
                             @click="handleDelete(scope.$index, scope.row)"
                         >删除</el-button>
+                        <el-button v-if="scope.row.zhuang=='解冻'"
+                            type="text"
+                            class="red"
+                            @click="dong(scope.$index, scope.row)"
+                        >冻结</el-button>
+                        <el-button v-else
+                            type="text"
+                            class="red"
+                            @click="jie(scope.$index, scope.row)"
+                        >解冻</el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -73,11 +84,11 @@
         <!-- 编辑弹出框 -->
         <el-dialog title="编辑" :visible.sync="editVisible" width="30%">
             <el-form ref="form" :model="form" label-width="70px">
-                <el-form-item label="用户名">
-                    <el-input v-model="form.name"></el-input>
+                <el-form-item label="头像">
+                    <el-input v-model="form.avatar"></el-input>
                 </el-form-item>
-                <el-form-item label="地址">
-                    <el-input v-model="form.address"></el-input>
+                <el-form-item label="昵称">
+                    <el-input v-model="form.nickname"></el-input>
                 </el-form-item>
             </el-form>
             <span slot="footer" class="dialog-footer">
@@ -115,16 +126,69 @@ export default {
     methods: {
         // 获取 easy-mock 的模拟数据
         getData() {
-            fetchData(this.query).then(res => {
-                console.log(res);
-                this.tableData = res.list;
-                this.pageTotal = res.pageTotal || 50;
-            });
+            var that = this
+            console.log('1111')
+            this.axios.post('http://localhost:3001/usersdata').then(
+                function(res){
+                    // that.$set(that.my_data , "tableData" , res.data.reverse())
+                    that.pageTotal = res.data.length || 10;
+                    console.log(res.data)
+                    var a = res.data
+                    for(var i=0;i<a.length;i++){
+                        a[i].id=i+1
+                    }
+                    that.tableData=a 
+                    // console.log(that.pageTotal)
+                },
+                function(err){
+                    console.log(err)
+                }
+                )
         },
-        // 触发搜索按钮
+        dong(index,row){
+            this.util.axios.post('http://localhost:3001/dong',{userId:row.userId,weigui:row.weigui}).then((res)=>{
+               console.log('冻结成功')
+               var a = this.tableData
+               for(var i=0;i<a.length;i++){
+                   if(a[i].userId==row.userId){
+                       a[i].zhuang='冻结'
+                       a[i].weigui= a[i].weigui-0+1
+                   }
+               }
+               this.tableData=a
+               this.$message.success(`冻结成功`);
+            },(err)=>{
+
+            })
+        },
+        jie(index,row){
+            this.util.axios.post('http://localhost:3001/jie',{userId:row.userId}).then((res)=>{
+               console.log('解冻成功')
+               var a = this.tableData
+               for(var i=0;i<a.length;i++){
+                   if(a[i].userId==row.userId){
+                       a[i].zhuang='解冻'
+                   }
+               }
+               this.tableData=a
+               this.$message.success(`解冻成功`);
+            },(err)=>{
+
+            })
+        },
         handleSearch() {
-            this.$set(this.query, 'pageIndex', 1);
-            this.getData();
+            console.log(this.query.name)
+            var arr = []
+            var b = this.tableData
+            for(var i = 0;i<b.length;i++){
+                   if((b[i].userId.indexOf(this.query.name)!=-1)||(b[i].weigui.indexOf(this.query.name)!=-1)){
+                       arr.push(b[i])
+                   }
+               }
+            console.log(arr)
+            this.tableData = arr
+            // this.$set(this.query, 'pageIndex', 1);
+            // this.getData();
         },
         // 删除操作
         handleDelete(index, row) {
@@ -133,8 +197,12 @@ export default {
                 type: 'warning'
             })
                 .then(() => {
-                    this.$message.success('删除成功');
-                    this.tableData.splice(index, 1);
+                    this.util.axios.post('http://localhost:3001/deluser',{userId:row.userId}).then((res)=>{
+                        console.log('删除成功')
+                        this.$message.success('删除成功');
+                        this.tableData.splice(index, 1);
+                        },(err)=>{
+                        })
                 })
                 .catch(() => {});
         },
@@ -160,9 +228,15 @@ export default {
         },
         // 保存编辑
         saveEdit() {
-            this.editVisible = false;
-            this.$message.success(`修改第 ${this.idx + 1} 行成功`);
+            this.util.axios.post(this.util.lurl+'/xiuuser',{a:this.form}).then((res) =>{
             this.$set(this.tableData, this.idx, this.form);
+            this.editVisible = false;
+            this.$message.success(`修改成功`);
+            // alert('修改成功')
+            // window.location.reload()
+            },(err) =>{
+            this.$message.success(`修改失败`);
+            }) 
         },
         // 分页导航
         handlePageChange(val) {

@@ -19,7 +19,7 @@
                 <el-button type="primary" icon="el-icon-search" @click="handleSearch">搜索</el-button>
             </div>
             <el-table
-                :data="tableData"
+                :data="tableData.slice((query.pageIndex-1)*query.pageSize,query.pageIndex*query.pageSize)"
                 border
                 class="table"
                 ref="multipleTable"
@@ -83,6 +83,8 @@
                     :total="pageTotal"
                     @current-change="handlePageChange"
                 ></el-pagination>
+
+                <!--  -->
             </div>
         </div>
 
@@ -119,7 +121,7 @@ export default {
             query: {
                 name: '',
                 pageIndex: 1,
-                pageSize: 10
+                pageSize: 6
             },
             tableData: [],
             multipleSelection: [],
@@ -128,7 +130,8 @@ export default {
             pageTotal: 0,
             form: {},
             idx: -1,
-            id: -1
+            id: -1,
+            value: false
         };
     },
     created() {
@@ -153,9 +156,11 @@ export default {
                             res.data[i].status='已完成'
                         }
                     }
+                    // res.data.length = 6
                     console.log(res.data)
                     that.tableData = res.data
                     that.pageTotal = res.data.length || 50;
+                    // console.log(that.pageTotal)
                 },
                 function(err){
                     console.log(err)
@@ -282,9 +287,33 @@ export default {
         },
         // 分页导航
         handlePageChange(val) {
+            // console.log("99999" , a , b , c)
+            // <el-pagination
+            //         background
+            //         :hide-on-single-page="value"
+            //         layout="total, prev, pager, next"
+            //         :current-page="query.pageIndex"
+            //         :page-size="query.pageSize"
+            //         :total="pageTotal"
+            //         @current-change="handlePageChange"
+            //     ></el-pagination>
+
+
+            
             this.$set(this.query, 'pageIndex', val);
+            console.log(this.query, 'pageIndex', val)
             this.getData();
-        }
+        },
+        handleRemove(file) {
+            console.log(file);
+        },
+        handlePictureCardPreview(file) {
+            this.dialogImageUrl = file.url;
+            this.dialogVisible = true;
+        },
+        handleDownload(file) {
+            console.log(file);
+        },
     }
 };
 </script>

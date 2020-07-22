@@ -18,11 +18,11 @@
                 <el-input v-model="query.name" placeholder="商品编号/商品类别/商品状态" class="handle-input mr10"></el-input>
                 <el-button type="primary" icon="el-icon-search" @click="handleSearch">搜索</el-button>
                 <template>
-                    <el-button type="primary" icon="el-icon-lx-add">添加商品</el-button>
+                    <el-button type="primary" icon="el-icon-lx-add"  @click="addgoods">添加商品</el-button>
                 </template>
             </div>
             <el-table
-                :data="tableData"
+                :data="my_data.tableData.slice((query.pageIndex-1)*query.pageSize,query.pageIndex*query.pageSize)"
                 border
                 class="table"
                 ref="multipleTable"
@@ -113,29 +113,26 @@
         <!-- 添加弹出框 -->
         <el-dialog title="添加" :visible.sync="addVisible" width="30%">
             <el-form ref="add_form" :model="add_form" label-width="70px">
-                <el-form-item label="新闻编号">
-                    <el-input v-model="form.num"></el-input>
+                <!-- <el-form-item label="商品编号">
+                    <el-input v-model="add_form.productNumber"></el-input>
+                </el-form-item> -->
+                <el-form-item label="商品名称">
+                    <el-input v-model="add_form.productName"></el-input>
                 </el-form-item>
-                <el-form-item label="新闻标题">
-                    <el-input v-model="form.title"></el-input>
+                <el-form-item label="商品类别">
+                    <el-input v-model="add_form.category"></el-input>
                 </el-form-item>
-                <el-form-item label="新闻专辑">
-                    <el-input v-model="form.album"></el-input>
+                <el-form-item label="商品库存">
+                    <el-input v-model="add_form.stocks"></el-input>
                 </el-form-item>
-                <el-form-item label="新闻等级">
-                    <el-input v-model="form.grade"></el-input>
-                </el-form-item>
-                <el-form-item label="新闻地址">
-                    <el-input v-model="form.herf"></el-input>
+                <el-form-item label="商品图片">
+                    <el-input v-model="add_form.productPicture"></el-input>
                 </el-form-item> 
-                <el-form-item label="新闻图片一">
-                    <el-input v-model="form.img1"></el-input>
+                <el-form-item label="商品简介">
+                    <el-input v-model="add_form.description"></el-input>
                 </el-form-item>
-                <el-form-item label="新闻图片二">
-                    <el-input v-model="form.img2"></el-input>
-                </el-form-item>
-                <el-form-item label="新闻图片三">
-                    <el-input v-model="form.img3"></el-input>
+                <el-form-item label="商品单价">
+                    <el-input v-model="add_form.price"></el-input>
                 </el-form-item>
             </el-form>
             <span slot="footer" class="dialog-footer">
@@ -157,59 +154,71 @@ export default {
                 pageIndex: 1,
                 pageSize: 10
             },
-            tableData: [],
+            my_data:{
+                tableData: []
+            },
             multipleSelection: [],
             delList: [],
             editVisible: false,
             addVisible: false,
             pageTotal: 0,
             form: {},
+            add_form:{},
             idx: -1,
             id: -1
         };
     },
     mounted() {
-        // this.getData();
-        var that = this
-        console.log('1111')
-        this.axios.post('http://localhost:3001/goodsInfoMana',{
-            data: {status:4}
-        }).then(
-            function(res){
-                that.tableData = res.data
-                that.pageTotal = res.data.length || 50;
-                console.log(res.data)
-                // console.log(that.pageTotal)
-            },
-            function(err){
-                console.log(err)
-            }
-            )
+        this.getData();
     },
     methods: {
+        getData() {
+            var that = this
+            console.log('1111')
+            this.axios.post('http://localhost:3001/goodsInfoMana',{
+                data: {status:4}
+            }).then(
+                function(res){
+                    that.$set(that.my_data , "tableData" , res.data.reverse())
+                    that.pageTotal = res.data.length || 10;
+                    console.log(res.data)
+                    // console.log(that.pageTotal)
+                },
+                function(err){
+                    console.log(err)
+                }
+                )
+        },
         shangjia(index,row) {
+            // console.log(row)
+            var that = this
             this.util.axios.post('http://localhost:3001/shangjia',{productNumber:row.productNumber}).then((res)=>{
                console.log('上架成功')
-               var a = this.tableData
+            //    console.log(row)
+               var a = that.my_data.tableData
                for(var i = 0;i<a.length;i++){
                    if(a[i].productNumber==row.productNumber){
                        a[i].zhuangtai = '已上架'
+                    //    console.log('改变了')
+                    that.$set(that.my_data.tableData , i , a[i])
+
                    }
                }
-               this.tableData = a
+
             },(err)=>{
             })
         },
         xiajia(index,row) {
+            var that = this
             this.util.axios.post('http://localhost:3001/xiajia',{productNumber:row.productNumber}).then((res)=>{
                console.log('下架成功')
-               var a = this.tableData
+               var a = this.my_data.tableData
                for(var i = 0;i<a.length;i++){
                    if(a[i].productNumber==row.productNumber){
                        a[i].zhuangtai = '未上架'
+                       that.$set(that.my_data.tableData , i , a[i])
                    }
                }
-               this.tableData = a
             },(err)=>{
             })
         },
@@ -217,14 +226,14 @@ export default {
         handleSearch() {
             console.log(this.query.name)
             var arr = []
-            var b = this.tableData
+            var b = this.my_data.tableData
             for(var i = 0;i<b.length;i++){
                    if((b[i].productNumber.indexOf(this.query.name)!=-1)||(b[i].category.indexOf(this.query.name)!=-1)||(b[i].zhuangtai.indexOf(this.query.name)!=-1)){
                        arr.push(b[i])
                    }
                }
             console.log(arr)
-            this.tableData = arr
+            this.$$set(this.my_data , "tableDate" , arr)
         },
         // 删除操作
         handleDelete(index, row) {
@@ -233,8 +242,12 @@ export default {
                 type: 'warning'
             })
                 .then(() => {
-                    this.$message.success('删除成功');
-                    this.tableData.splice(index, 1);
+                    this.util.axios.post('http://localhost:3001/delgoods',{productNumber:row.productNumber}).then((res)=>{
+                        console.log('删除成功')
+                        this.$message.success('删除成功');
+                        this.my_data.tableData.splice(index, 1);
+                        },(err)=>{
+                        })
                 })
                 .catch(() => {});
         },
@@ -243,14 +256,42 @@ export default {
             this.multipleSelection = val;
         },
         delAllSelection() {
+               // 二次确认删除
+            this.$confirm('确定要删除吗？', '提示', {
+                type: 'warning'
+            })
+            .then(() => {
             const length = this.multipleSelection.length;
             let str = '';
+            var arr = []
             this.delList = this.delList.concat(this.multipleSelection);
             for (let i = 0; i < length; i++) {
-                str += this.multipleSelection[i].name + ' ';
+                str += this.multipleSelection[i].productNumber + ' ';
+                arr.push(this.multipleSelection[i].productNumber)
             }
-            this.$message.error(`删除了${str}`);
+            console.log(arr)
+            this.util.axios.post(this.util.lurl+'/manydelgoods',{id :JSON.stringify(arr)}).then((res)=>{
+            var tmp_data = this.my_data.tableData
+            console.log(tmp_data )
+                for (var k = 0; k < arr.length; k++) {
+                   for (var j = 0; j < tmp_data.length; j++) {
+                       if(tmp_data[j].productNumber==arr[k]){
+                           tmp_data.splice(j, 1);
+                       }
+                   }
+                }
+            console.log(tmp_data )
+            this.$set(this.my_data , "tableDate" , tmp_data)
+            this.$message.success(`批量删除成功`);
+            // window.location.reload()
             this.multipleSelection = [];
+            },(err)=>{
+            console.log(err)
+            this.$message.error(`删除失败`);
+            })
+            this.multipleSelection = [];
+                })
+                .catch(() => {});
         },
         // 编辑操作
         handleEdit(index, row) {
@@ -261,7 +302,7 @@ export default {
         // 保存编辑
         saveEdit() {
             this.util.axios.post(this.util.lurl+'/xiushang',{a:this.form}).then((res) =>{
-            this.$set(this.tableData, this.idx, this.form);
+            this.$set(this.my_data.tableData, this.idx, this.form);
             this.editVisible = false;
             this.$message.success(`修改成功`);
             // alert('修改成功')
@@ -270,11 +311,56 @@ export default {
             this.$message.success(`修改失败`);
             }) 
         },
+        // // 编辑添加
+        addgoods(index, row) {
+            this.addVisible = true; 
+        },
+        // 保存添加
+        saveadd() {
+            var that = this;
+            this.addVisible = false;
+            // console.log(this.add_form)
+            var a = '1'
+            for(var i=0;i<this.add_form.length;i++){
+                if(this.add_form[i]==''){
+                  a = '2'
+                }
+            }
+            if(a=='1'){
+                var productNumber = new Date().getTime()
+                var that = this
+                that.add_form.productNumber = productNumber
+                that.add_form.zhuangtai = '未上架'
+                that.util.axios.post(that.util.lurl+'/addgoods',{goods:that.add_form}).then((res) =>{
+                    // window.location.reload()
+                    var a = that.my_data.tableData
+                    a.unshift(that.add_form)
+                    that.$set(this.my_data , "tableData" , a)
+                    that.$message.success(`添加成功`);
+                    this.add_form={}
+                    },(err) =>{
+                        console.log(err)
+                    }
+                )
+            } else{
+               alert('您有未填信息')
+            } 
+        },
         // 分页导航
         handlePageChange(val) {
             this.$set(this.query, 'pageIndex', val);
             this.getData();
-        }
+        },
+        handleRemove(file) {
+            console.log(file);
+        },
+        handlePictureCardPreview(file) {
+            this.dialogImageUrl = file.url;
+            this.dialogVisible = true;
+        },
+        handleDownload(file) {
+            console.log(file);
+        },
     }
 };
 </script>
