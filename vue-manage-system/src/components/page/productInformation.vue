@@ -15,8 +15,11 @@
                     class="handle-del mr10"
                     @click="delAllSelection"
                 >批量删除</el-button>
-                <el-input v-model="query.name" placeholder="请输入商品类别" class="handle-input mr10"></el-input>
+                <el-input v-model="query.name" placeholder="商品编号/商品类别/商品状态" class="handle-input mr10"></el-input>
                 <el-button type="primary" icon="el-icon-search" @click="handleSearch">搜索</el-button>
+                <template>
+                    <el-button type="primary" icon="el-icon-lx-add">添加商品</el-button>
+                </template>
             </div>
             <el-table
                 :data="tableData"
@@ -27,18 +30,10 @@
                 @selection-change="handleSelectionChange"
             >
                 <el-table-column type="selection" width="55" align="center"></el-table-column>
-                <el-table-column prop="id" label="商品编号" align="center">
-                    <template slot-scope="scope">{{scope.row.productNumber}}</template>
-                </el-table-column>
-                <el-table-column prop="name" label="商品名称" align="center">
-                    <template slot-scope="scope">{{scope.row.productName}}</template>
-                </el-table-column>
-                <el-table-column prop="address" label="商品类别" align="center">
-                    <template slot-scope="scope">{{scope.row.category}}</template>
-                </el-table-column>
-                <el-table-column prop="address" label="商品库存" align="center">
-                    <template slot-scope="scope">{{scope.row.stocks}}</template>
-                </el-table-column>
+                <el-table-column prop="productNumber" label="商品编号" align="center"></el-table-column>
+                <el-table-column prop="productName" label="商品名称" align="center"></el-table-column>
+                <el-table-column prop="category" label="商品类别" align="center"></el-table-column>
+                <el-table-column prop="stocks" label="商品库存" align="center"></el-table-column>
                 <el-table-column label="商品图片" align="center" >
                     <template slot-scope="scope">
                         <el-image
@@ -48,12 +43,11 @@
                         ></el-image>
                     </template>
                 </el-table-column>
-                <el-table-column prop="name" label="商品简介" align="center">
-                    <template slot-scope="scope">{{scope.row.description}}</template>
-                </el-table-column>
+                <el-table-column prop="description"  label="商品简介" align="center" :show-overflow-tooltip="true"></el-table-column>
                 <el-table-column label="商品单价" align="center">
-                    <template slot-scope="scope">{{scope.row.price}}</template>
+                    <template slot-scope="scope">￥{{scope.row.price}}</template>
                 </el-table-column>
+                <el-table-column prop="zhuangtai" label="商品状态" align="center"></el-table-column>
                 <el-table-column label="操作" width="180" align="center">
                     <template slot-scope="scope">
                         <el-button
@@ -67,6 +61,16 @@
                             class="red"
                             @click="handleDelete(scope.$index, scope.row)"
                         >删除</el-button>
+                        <el-button v-if="scope.row.zhuangtai=='未上架'"
+                            type="text"
+                            class="blue"
+                            @click="shangjia(scope.$index, scope.row)"
+                        >上架</el-button>
+                        <el-button v-else
+                            type="text"
+                            class="blue"
+                            @click="xiajia(scope.$index, scope.row)"
+                        >下架</el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -86,27 +90,57 @@
         <el-dialog title="编辑" :visible.sync="editVisible" width="30%">
             <el-form ref="form" :model="form" label-width="70px">
                 <el-form-item label="商品名称">
-                    <el-input v-model="form.name"></el-input>
-                </el-form-item>
-                <el-form-item label="商品类别">
-                    <el-input v-model="form.address"></el-input>
+                    <el-input v-model="form.productName"></el-input>
                 </el-form-item>
                 <el-form-item label="商品库存">
-                    <el-input v-model="form.address"></el-input>
+                    <el-input v-model="form.stocks"></el-input>
                 </el-form-item>
                 <el-form-item label="商品图片">
-                    <el-input v-model="form.address"></el-input>
+                    <el-input v-model="form.productPicture"></el-input>
                 </el-form-item>
                 <el-form-item label="商品简介">
-                    <el-input v-model="form.address"></el-input>
+                    <el-input v-model="form.description"></el-input>
                 </el-form-item>
                 <el-form-item label="商品单价">
-                    <el-input v-model="form.address"></el-input>
+                    <el-input v-model="form.price"></el-input>
                 </el-form-item>
             </el-form>
             <span slot="footer" class="dialog-footer">
                 <el-button @click="editVisible = false">取 消</el-button>
                 <el-button type="primary" @click="saveEdit">确 定</el-button>
+            </span>
+        </el-dialog>
+        <!-- 添加弹出框 -->
+        <el-dialog title="添加" :visible.sync="addVisible" width="30%">
+            <el-form ref="add_form" :model="add_form" label-width="70px">
+                <el-form-item label="新闻编号">
+                    <el-input v-model="form.num"></el-input>
+                </el-form-item>
+                <el-form-item label="新闻标题">
+                    <el-input v-model="form.title"></el-input>
+                </el-form-item>
+                <el-form-item label="新闻专辑">
+                    <el-input v-model="form.album"></el-input>
+                </el-form-item>
+                <el-form-item label="新闻等级">
+                    <el-input v-model="form.grade"></el-input>
+                </el-form-item>
+                <el-form-item label="新闻地址">
+                    <el-input v-model="form.herf"></el-input>
+                </el-form-item> 
+                <el-form-item label="新闻图片一">
+                    <el-input v-model="form.img1"></el-input>
+                </el-form-item>
+                <el-form-item label="新闻图片二">
+                    <el-input v-model="form.img2"></el-input>
+                </el-form-item>
+                <el-form-item label="新闻图片三">
+                    <el-input v-model="form.img3"></el-input>
+                </el-form-item>
+            </el-form>
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="addVisible = false">取 消</el-button>
+                <el-button type="primary" @click="saveadd">确 定</el-button>
             </span>
         </el-dialog>
     </div>
@@ -127,6 +161,7 @@ export default {
             multipleSelection: [],
             delList: [],
             editVisible: false,
+            addVisible: false,
             pageTotal: 0,
             form: {},
             idx: -1,
@@ -141,11 +176,9 @@ export default {
             data: {status:4}
         }).then(
             function(res){
-                console.log(res.data)
-                console.log(that)
                 that.tableData = res.data
                 that.pageTotal = res.data.length || 50;
-                // console.log(that.tableData)
+                console.log(res.data)
                 // console.log(that.pageTotal)
             },
             function(err){
@@ -154,10 +187,44 @@ export default {
             )
     },
     methods: {
-
+        shangjia(index,row) {
+            this.util.axios.post('http://localhost:3001/shangjia',{productNumber:row.productNumber}).then((res)=>{
+               console.log('上架成功')
+               var a = this.tableData
+               for(var i = 0;i<a.length;i++){
+                   if(a[i].productNumber==row.productNumber){
+                       a[i].zhuangtai = '已上架'
+                   }
+               }
+               this.tableData = a
+            },(err)=>{
+            })
+        },
+        xiajia(index,row) {
+            this.util.axios.post('http://localhost:3001/xiajia',{productNumber:row.productNumber}).then((res)=>{
+               console.log('下架成功')
+               var a = this.tableData
+               for(var i = 0;i<a.length;i++){
+                   if(a[i].productNumber==row.productNumber){
+                       a[i].zhuangtai = '未上架'
+                   }
+               }
+               this.tableData = a
+            },(err)=>{
+            })
+        },
         // 触发搜索按钮
         handleSearch() {
-            this.$set(this.query, 'pageIndex', 1);
+            console.log(this.query.name)
+            var arr = []
+            var b = this.tableData
+            for(var i = 0;i<b.length;i++){
+                   if((b[i].productNumber.indexOf(this.query.name)!=-1)||(b[i].category.indexOf(this.query.name)!=-1)||(b[i].zhuangtai.indexOf(this.query.name)!=-1)){
+                       arr.push(b[i])
+                   }
+               }
+            console.log(arr)
+            this.tableData = arr
         },
         // 删除操作
         handleDelete(index, row) {
@@ -193,9 +260,15 @@ export default {
         },
         // 保存编辑
         saveEdit() {
-            this.editVisible = false;
-            this.$message.success(`修改第 ${this.idx + 1} 行成功`);
+            this.util.axios.post(this.util.lurl+'/xiushang',{a:this.form}).then((res) =>{
             this.$set(this.tableData, this.idx, this.form);
+            this.editVisible = false;
+            this.$message.success(`修改成功`);
+            // alert('修改成功')
+            // window.location.reload()
+            },(err) =>{
+            this.$message.success(`修改失败`);
+            }) 
         },
         // 分页导航
         handlePageChange(val) {

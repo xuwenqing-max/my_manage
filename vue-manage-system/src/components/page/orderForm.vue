@@ -15,7 +15,7 @@
                     class="handle-del mr10"
                     @click="delAllSelection"
                 >批量删除</el-button>
-                <el-input v-model="query.name" placeholder="用户名" class="handle-input mr10"></el-input>
+                <el-input v-model="query.name" placeholder="订单号/商品编号/订单状态" class="handle-input mr10"></el-input>
                 <el-button type="primary" icon="el-icon-search" @click="handleSearch">搜索</el-button>
             </div>
             <el-table
@@ -27,15 +27,32 @@
                 @selection-change="handleSelectionChange"
             >
                 <el-table-column type="selection" width="55" align="center"></el-table-column>
-                <el-table-column prop="id" label="ID" width="55" align="center"></el-table-column>
-                <el-table-column prop="name" label="订单编号"></el-table-column>
-                <el-table-column prop="name" label="订单人"></el-table-column>
-                <el-table-column prop="address" label="商品名称"></el-table-column>
-                <el-table-column label="订单金额">
-                    <template slot-scope="scope">￥{{scope.row.money}}</template>
+                <!-- <el-table-column prop="id" label="ID" width="55" align="center"></el-table-column> -->
+                <el-table-column prop="orderNumber" label="订单编号"></el-table-column>
+                <el-table-column prop="userId" label="用户ID"></el-table-column>
+                <el-table-column prop="shouperson" label="收货人"></el-table-column>
+                <el-table-column prop="shouaddress" label="收货地址"></el-table-column>
+                <el-table-column prop="shoutel" label="收货电话"></el-table-column>
+                <el-table-column prop="productNumber" label="商品编号"></el-table-column>
+                <el-table-column prop="productName" label="商品名称"></el-table-column>
+                <el-table-column label="商品图片" align="center" >
+                    <template slot-scope="scope">
+                        <el-image
+                            class="table-td-thumb"
+                            :src="scope.row.productPicture"
+                            :preview-src-list="[scope.row.productPicture]"
+                        ></el-image>
+                    </template>
                 </el-table-column>
-                <el-table-column prop="address" label="订单生成时间"></el-table-column>
-                <el-table-column prop="name" label="订单状态"></el-table-column>
+                <el-table-column label="商品单价">
+                    <template slot-scope="scope">￥{{scope.row.price}}</template>
+                </el-table-column>
+                <el-table-column prop="shuliang" label="购买数量"></el-table-column>
+                <el-table-column label="订单金额">
+                    <template slot-scope="scope">￥{{scope.row.totalPrice}}</template>
+                </el-table-column>
+                <el-table-column prop="generationTime" label="订单生成时间"></el-table-column>
+                <el-table-column prop="status" label="订单状态"></el-table-column>
                 <el-table-column label="操作" width="180" align="center">
                     <template slot-scope="scope">
                         <el-button
@@ -49,6 +66,11 @@
                             class="red"
                             @click="handleDelete(scope.$index, scope.row)"
                         >删除</el-button>
+                        <el-button v-if="scope.row.status=='待发货'"
+                            type="text"
+                            class="blue"
+                            @click="fahuo(scope.$index, scope.row)"
+                        >发货</el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -67,11 +89,17 @@
         <!-- 编辑弹出框 -->
         <el-dialog title="编辑" :visible.sync="editVisible" width="30%">
             <el-form ref="form" :model="form" label-width="70px">
-                <el-form-item label="用户名">
-                    <el-input v-model="form.name"></el-input>
+                <el-form-item label="收货人">
+                    <el-input v-model="form.shouperson"></el-input>
                 </el-form-item>
-                <el-form-item label="地址">
-                    <el-input v-model="form.address"></el-input>
+                <el-form-item label="收货地址">
+                    <el-input v-model="form.shouaddress"></el-input>
+                </el-form-item>
+                <el-form-item label="收货电话">
+                    <el-input v-model="form.shoutel"></el-input>
+                </el-form-item>
+                <el-form-item label="订单金额">
+                    <el-input v-model="form.totalPrice"></el-input>
                 </el-form-item>
             </el-form>
             <span slot="footer" class="dialog-footer">
@@ -107,18 +135,64 @@ export default {
         this.getData();
     },
     methods: {
-        // 获取 easy-mock 的模拟数据
+        // 获取数据
         getData() {
-            fetchData(this.query).then(res => {
-                console.log(res);
-                this.tableData = res.list;
-                this.pageTotal = res.pageTotal || 50;
-            });
+            var that = this
+            this.axios.post('http://localhost:3001/orderlist').then(
+                function(res){
+                    for(var i = 0;i<res.data.length;i++){
+                        if(res.data[i].status=='0'){
+                            res.data[i].status='待付款'
+                        } else if(res.data[i].status=='1'){
+                            res.data[i].status='待发货'
+                        } else if(res.data[i].status=='2'){
+                            res.data[i].status='待收货'
+                        } else if(res.data[i].status=='3'){
+                            res.data[i].status='待评价'
+                        } else if(res.data[i].status=='4'){
+                            res.data[i].status='已完成'
+                        }
+                    }
+                    console.log(res.data)
+                    that.tableData = res.data
+                    that.pageTotal = res.data.length || 50;
+                },
+                function(err){
+                    console.log(err)
+                }
+                )
+        },
+        // 发货
+        fahuo (index,row) {
+            // console.log(index)
+            // console.log(row.orderNumber)
+            this.util.axios.post('http://localhost:3001/fahuo',{orderNumber:row.orderNumber}).then((res)=>{
+               console.log('发货成功')
+               var a = this.tableData
+               for(var i = 0;i<a.length;i++){
+                   if(a[i].orderNumber==row.orderNumber){
+                       a[i].status = '待收货'
+                   }
+               }
+               this.tableData = a
+            },(err)=>{
+
+            })
         },
         // 触发搜索按钮
         handleSearch() {
-            this.$set(this.query, 'pageIndex', 1);
-            this.getData();
+            console.log(this.query.name)
+            var arr = []
+            var b = this.tableData
+            for(var i = 0;i<b.length;i++){
+                   if((b[i].orderNumber.indexOf(this.query.name)!=-1)||(b[i].productNumber.indexOf(this.query.name)!=-1)||(b[i].status.indexOf(this.query.name)!=-1)){
+                       arr.push(b[i])
+                   }
+               }
+            console.log(arr)
+            this.tableData = arr
+            // this.$set(this.query, 'pageIndex', 1);
+            // this.getData();
         },
         // 删除操作
         handleDelete(index, row) {
@@ -127,8 +201,12 @@ export default {
                 type: 'warning'
             })
                 .then(() => {
-                    this.$message.success('删除成功');
-                    this.tableData.splice(index, 1);
+                    this.util.axios.post('http://localhost:3001/delorder',{danhao:row.orderNumber}).then((res)=>{
+                        console.log('删除成功')
+                        this.$message.success('删除成功');
+                        this.tableData.splice(index, 1);
+                        },(err)=>{
+                        })
                 })
                 .catch(() => {});
         },
@@ -136,15 +214,53 @@ export default {
         handleSelectionChange(val) {
             this.multipleSelection = val;
         },
+        // delAllSelection() {
+        //     const length = this.multipleSelection.length;
+        //     let str = '';
+        //     this.delList = this.delList.concat(this.multipleSelection);
+        //     for (let i = 0; i < length; i++) {
+        //         str += this.multipleSelection[i].name + ' ';
+        //     }
+        //     this.$message.error(`删除了${str}`);
+        //     this.multipleSelection = [];
+        // },
         delAllSelection() {
+               // 二次确认删除
+            this.$confirm('确定要删除吗？', '提示', {
+                type: 'warning'
+            })
+            .then(() => {
             const length = this.multipleSelection.length;
             let str = '';
+            var arr = []
             this.delList = this.delList.concat(this.multipleSelection);
             for (let i = 0; i < length; i++) {
-                str += this.multipleSelection[i].name + ' ';
+                str += this.multipleSelection[i].orderNumber + ' ';
+                arr.push(this.multipleSelection[i].orderNumber)
             }
-            this.$message.error(`删除了${str}`);
+            console.log(arr)
+            this.util.axios.post(this.util.lurl+'/manydelding',{id :JSON.stringify(arr)}).then((res)=>{
+            var tmp_data = this.tableData
+            console.log(tmp_data )
+                for (var k = 0; k < arr.length; k++) {
+                   for (var j = 0; j < tmp_data.length; j++) {
+                       if(tmp_data[j].orderNumber==arr[k]){
+                           tmp_data.splice(j, 1);
+                       }
+                   }
+                }
+            console.log(tmp_data )
+            this.tableData = tmp_data
+            this.$message.success(`批量删除成功`);
+            // window.location.reload()
             this.multipleSelection = [];
+            },(err)=>{
+            console.log(err)
+            this.$message.error(`删除失败`);
+            })
+            this.multipleSelection = [];
+                })
+                .catch(() => {});
         },
         // 编辑操作
         handleEdit(index, row) {
@@ -154,9 +270,15 @@ export default {
         },
         // 保存编辑
         saveEdit() {
-            this.editVisible = false;
-            this.$message.success(`修改第 ${this.idx + 1} 行成功`);
+            this.util.axios.post(this.util.lurl+'/xiuding',{a:this.form}).then((res) =>{
             this.$set(this.tableData, this.idx, this.form);
+            this.editVisible = false;
+            this.$message.success(`修改成功`);
+            // alert('修改成功')
+            // window.location.reload()
+            },(err) =>{
+            this.$message.success(`修改失败`);
+            }) 
         },
         // 分页导航
         handlePageChange(val) {
