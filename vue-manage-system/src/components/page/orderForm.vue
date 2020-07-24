@@ -31,11 +31,12 @@
                 <el-table-column prop="orderNumber" label="订单编号"></el-table-column>
                 <el-table-column prop="userId" label="用户ID"></el-table-column>
                 <el-table-column prop="shouperson" label="收货人"></el-table-column>
-                <el-table-column prop="shouaddress" label="收货地址"></el-table-column>
+                <el-table-column prop="shouaddress" label="收货地址"  :show-overflow-tooltip="true"></el-table-column>
                 <el-table-column prop="shoutel" label="收货电话"></el-table-column>
-                <el-table-column prop="productNumber" label="商品编号"></el-table-column>
-                <el-table-column prop="productName" label="商品名称"></el-table-column>
-                <el-table-column label="商品图片" align="center" >
+                <el-table-column prop="sb" label="商品编号"  :show-overflow-tooltip="true"></el-table-column>
+                <el-table-column prop="sx" label="商品名称" :show-overflow-tooltip="true"></el-table-column>
+                <el-table-column prop="sd" label="商品数量" :show-overflow-tooltip="true"></el-table-column>
+                <!-- <el-table-column label="商品图片" align="center" >
                     <template slot-scope="scope">
                         <el-image
                             class="table-td-thumb"
@@ -43,15 +44,15 @@
                             :preview-src-list="[scope.row.productPicture]"
                         ></el-image>
                     </template>
-                </el-table-column>
-                <el-table-column label="商品单价">
+                </el-table-column> -->
+                <!-- <el-table-column label="商品单价">
                     <template slot-scope="scope">￥{{scope.row.price}}</template>
-                </el-table-column>
-                <el-table-column prop="shuliang" label="购买数量"></el-table-column>
+                </el-table-column> -->
+                <!-- <el-table-column prop="shuliang" label="购买数量"></el-table-column> -->
                 <el-table-column label="订单金额">
                     <template slot-scope="scope">￥{{scope.row.totalPrice}}</template>
                 </el-table-column>
-                <el-table-column prop="generationTime" label="订单生成时间"></el-table-column>
+                <el-table-column prop="generationTime" label="订单生成时间"  width="120"></el-table-column>
                 <el-table-column prop="status" label="订单状态"></el-table-column>
                 <el-table-column label="操作" width="180" align="center">
                     <template slot-scope="scope">
@@ -121,7 +122,7 @@ export default {
             query: {
                 name: '',
                 pageIndex: 1,
-                pageSize: 6
+                pageSize: 10
             },
             tableData: [],
             multipleSelection: [],
@@ -141,9 +142,32 @@ export default {
         // 获取数据
         getData() {
             var that = this
-            this.axios.post('http://localhost:3001/orderlist').then(
+            this.axios.post('http://localhost:3001/orderlisthou').then(
                 function(res){
                     for(var i = 0;i<res.data.length;i++){
+                        var tmp_dic = JSON.parse(res.data[i].productNumber)
+
+                        var sb = ""
+                        for (var j = 0; j < tmp_dic.length; j++) {
+                            sb += (tmp_dic[j].productNumber + ",")
+                        }
+                        sb = sb.substr(0,sb.length-1);
+                        res.data[i].sb = sb
+
+                        var sx = ""
+                        for (var k = 0; k < tmp_dic.length; k++) {
+                            sx += (tmp_dic[k].productName + ",")
+                        }
+                        sx = sx.substr(0,sx.length-1);
+                        res.data[i].sx = sx
+
+                        var sd = ""
+                        for (var l = 0; l < tmp_dic.length; l++) {
+                            sd += (tmp_dic[l].quantity + ",")
+                        }
+                        sd = sd.substr(0,sd.length-1);
+                        res.data[i].sd = sd
+
                         if(res.data[i].status=='0'){
                             res.data[i].status='待付款'
                         } else if(res.data[i].status=='1'){
@@ -156,6 +180,8 @@ export default {
                             res.data[i].status='已完成'
                         }
                     }
+
+                    console.log(res)
                     // res.data.length = 6
                     console.log(res.data)
                     that.tableData = res.data
